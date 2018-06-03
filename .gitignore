@@ -1,0 +1,7 @@
+/database/
+/init_sql/
+/logs/
+/www/
+*.sql
+/profiler/
+/.idea/

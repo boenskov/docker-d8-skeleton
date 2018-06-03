@@ -1,0 +1,68 @@
+version: '2'
+
+services:
+  dd8s_nginx:
+    depends_on:
+      - dd8s_fpm
+    #dockerfile: ./Dockerfile # путь до докер файла указываем относительно директории в build
+    build: ./containers/nginx
+    ports:
+      - ${NGINX_PORT}:80
+    expose:
+      - "${NGINX_PORT}"
+    volumes:
+      - ./logs/nginx:/etc/logs/nginx
+    volumes_from:
+      - dd8s_fpm:rw
+    environment:
+      - NGINX_HOST=localhost
+      - NGINX_PORT=80
+    #command: chown -R www-data:www-data /var/www && nginx -g "daemon off;" # Можно было указать в докер-фале, но можно и здесь)
+    #command: nginx -g "daemon off;" 
+    links:
+      - dd8s_fpm
+  dd8s_fpm:
+    build: ./containers/php-fpm
+    volumes:
+      - ./www:/var/www:rw
+      - ./init_sql:/init_sql
+      - ./profiler:/profiler
+    depends_on: 
+      - dd8s_mysql
+    links:
+      - dd8s_mysql
+      - dd8s_mysql:sql
+    environment:
+      - XDEBUG_CONFIG='remote_host=0.0.0.0'
+##  phpcli:
+##    container_name: '_phpcli'
+##    #dockerfile: ./Dockerfile
+##    build: ./containers/php-cli
+#    volumes:
+#      - ./init_sql:/init_sql
+##      #- ./php-code:/var/www:rw
+  dd8s_mysql:
+    image: mysql:5.7.17
+    expose:
+      - "${MYSQL_PORT}"
+    ports:
+      - ${MYSQL_PORT}:3306
+    volumes:
+      - ./containers/mysql/conf:/etc/mysql/conf.d
+      - ./database:/var/lib/mysql
+      - ./logs/mysql:/etc/logs/mysql
+      - ./init_sql:/init_sql
+#    environment:
+#      - MYSQL_ROOT_PASSWORD=qwerty
+#    domainname: mysql1
+#    hostname: mysql2
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    links:
+      - dd8s_mysql:db
+    ports:
+      - ${PMA_PORT}:80
+#    environment:
+#      PMA_USER: root
+#      PMA_PASSWORD: qwerty
